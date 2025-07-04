@@ -2,6 +2,8 @@ import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+from config import SERVICE_ACCOUNT_PATH
+
 
 
 FOLDER_ID = os.getenv("DRIVE_FOLDER_ID")
@@ -10,8 +12,7 @@ SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")  # Path ke fi
 
 def upload_photo(file_path):
     credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE,
-        scopes=SCOPES
+    SERVICE_ACCOUNT_PATH, scopes=SCOPES
     )
     service = build('drive', 'v3', credentials=credentials)
 

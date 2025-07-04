@@ -1,5 +1,25 @@
-.env
-*.json
+# Python cache
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+
+# Env
+.env
+.env.*
+
+# Venv
+venv/
+.venv/
+
+# Data
+photos/
+data/
+
+# IDE
 .vscode/
+*.log
+
+# Credentials
+credentials/
+*.json

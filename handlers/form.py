@@ -1,5 +1,7 @@
 # handlers/form.py
+
 import os
+from datetime import datetime, timezone, timedelta
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
 from services.mongodb import save_data
@@ -8,18 +10,18 @@ from services.mongodb import save_data
 # Mapping dinamis TELDA ke opsi STO
 # ─────────────────────────────────────────────────────────────
 telda_sto_map = {
-    "bangkalan": ["SPG", "KML", "ARB", "KPP", "BKL", "OMB", "BEA", "TBU"],
-    "gresik": ["CRM", "POG", "BPG", "DDS", "SDY", "KDE", "BWN", "GSK"],
-    "lamongan": ["SDD", "LMG", "BBA", "BDG"],
-    "pamekasan": ["BAB", "ABT", "SPK", "PRG", "AJA", "WRP", "SMP", "PME", "SPD", "MSL"],
-    "tandes": ["BAB", "ABT", "SPK", "PRG", "AJA", "WRP", "SMP", "PME", "SPD", "MSL"],
-    "ketintang": ["WRU", "IJK", "RKT", "TPO"],
-    "manyar": ["GBG", "MYR", "JGR", "MGO"],
-    "kanjeran": ["KPS", "PRK", "KBL", "KJR"]
+    "Bangkalan": ["SPG", "KML", "ARB", "KPP", "BKL", "OMB", "BEA", "TBU"],
+    "Gresik": ["CRM", "POG", "BPG", "DDS", "SDY", "KDE", "BWN", "GSK"],
+    "Lamongan": ["SDD", "LMG", "BBA", "BDG"],
+    "Pamekasan": ["BAB", "ABT", "SPK", "PRG", "AJA", "WRP", "SMP", "PME", "SPD", "MSL"],
+    "Tandes": ["BAB", "ABT", "SPK", "PRG", "AJA", "WRP", "SMP", "PME", "SPD", "MSL"],
+    "Ketintang": ["WRU", "IJK", "RKT", "TPO"],
+    "Manyar": ["GBG", "MYR", "JGR", "MGO"],
+    "Kanjeran": ["KPS", "PRK", "KBL", "KJR"]
 }
 
 # ─────────────────────────────────────────────────────────────
-# Langkah form
+# Langkah-langkah pengisian form
 # ─────────────────────────────────────────────────────────────
 steps = [
     "kategori", "kkontak", "telda", "sto", "kegiatan", "poi_name", "address",
@@ -29,24 +31,27 @@ steps = [
 ]
 
 # ─────────────────────────────────────────────────────────────
-# Opsi tiap step (jika pakai tombol)
+# Pilihan tombol per step
 # ─────────────────────────────────────────────────────────────
 options = {
-    "kategori": ["visit baru", "follow up"],
+    "kategori": ["Visit Baru", "Follow Up"],
     "telda": list(telda_sto_map.keys()),
     "kegiatan": ["Door to Door", "Out Bond Call"],
     "ekosistem": ["Ruko", "Sekolah", "Hotel", "Multifinance", "Health", "Ekspedisi",
-                "Energi", "Agriculture", "Properti", "Manufaktur", "Media & Communication"],
+                  "Energi", "Agriculture", "Properti", "Manufaktur", "Media & Communication"],
     "provider": ["Telkom Group", "Kompetitor", "Belum Berlangganan Internet"],
     "provider_detail_telkom": ["Indihome", "Indibiz", "Wifi.id", "Astinet", "Other"],
     "provider_detail_kompetitor": ["MyRep", "Biznet", "FirtsMedia", "Iconnet", "XL Smart",
-        "Indosat MNCPlay", "IFORTE", "Hypernet", "CBN", "Fibernet", "Fiberstar", "Other"],
+                                   "Indosat MNCPlay", "IFORTE", "Hypernet", "CBN", "Fibernet", "Fiberstar", "Other"],
     "feedback": ["Bertemu dengan PIC/Owner/Manajemen", "Tidak bertemu dengan PIC"],
     "feedback_detail_ya": ["Tertarik Berlangganan Indibiz", "Tidak Tertarik Berlangganan Indibiz",
-        "Ragu-ragu atau masih dipertimbangkan"],
+                           "Ragu-ragu atau masih dipertimbangkan"],
     "feedback_detail_tidak": ["Mendapatkan Kontak Owner/PIC/Manajemen", "Tidak Mendapatkan Kontak Owner/PIC/Manajemen"]
 }
 
+# ─────────────────────────────────────────────────────────────
+# Label untuk setiap input
+# ─────────────────────────────────────────────────────────────
 labels = {
     "kategori": "Kategori",
     "kkontak": "KKONTAK",
@@ -67,6 +72,9 @@ labels = {
     "detail_info": "Informasi Tambahan"
 }
 
+
+# ─────────────────────────────────────────────────────────────
+# Handler untuk input tombol (inline keyboard)
 # ─────────────────────────────────────────────────────────────
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -78,12 +86,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(f"✅ Anda memilih: *{selected_value}*", parse_mode="Markdown")
 
-    # ── Alur cabang ─────────────────────
     if step == "telda":
         context.user_data["step"] = "sto"
         keyboard = [[InlineKeyboardButton(sto, callback_data=sto)] for sto in telda_sto_map[selected_value]]
-        await query.message.reply_text(f"Anda memilih {selected_value.title()}, pilih STO:",
-            reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.message.reply_text(
+            f"Anda memilih {selected_value.title()}, pilih STO:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
         return
 
     elif step == "provider":
@@ -120,6 +129,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("📸 Silakan kirim foto eviden kegiatan:")
 
 
+# ─────────────────────────────────────────────────────────────
+# Handler untuk input teks
+# ─────────────────────────────────────────────────────────────
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step")
     if step not in steps:
@@ -137,6 +149,9 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("📸 Silakan kirim foto eviden kegiatan:")
 
 
+# ─────────────────────────────────────────────────────────────
+# Menampilkan pertanyaan berikutnya
+# ─────────────────────────────────────────────────────────────
 async def ask_next(update: Update, context: ContextTypes.DEFAULT_TYPE):
     step = context.user_data.get("step")
     label = labels.get(step, step.replace("_", " ").title())
@@ -149,18 +164,25 @@ async def ask_next(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.reply_text(f"Masukkan {label}:")
 
 
+# ─────────────────────────────────────────────────────────────
+# Handler foto (eviden) & simpan ke database + upload GDrive
+# ─────────────────────────────────────────────────────────────
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from services.drive import upload_photo  # Import lokal agar aman
+
     user_id = update.effective_user.id
     photo_file = await update.message.photo[-1].get_file()
     os.makedirs("photos", exist_ok=True)
     file_path = f"photos/{user_id}_{photo_file.file_unique_id}.jpg"
     await photo_file.download_to_drive(file_path)
 
-    from services.drive import upload_photo  # Lazy import agar aman
     drive_url = upload_photo(file_path)
 
+    # Gunakan timezone WIB
+    wib = timezone(timedelta(hours=7))
     data = context.user_data.copy()
     data["photo_url"] = drive_url
-    save_data(data)
+    data["timestamp"] = datetime.now(wib)
 
+    save_data(data)
     await update.message.reply_text("✅ Data dan eviden berhasil dikirim. Terima kasih!")
